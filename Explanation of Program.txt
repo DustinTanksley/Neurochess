@@ -1,0 +1,95 @@
+This document explains how general flow of the program, and how each of the major systems work.
+
+****************************************
+Assignment 1
+****************************************
+
+First, the runTurn function is called, and a gameboard is generated from the fen. 
+
+The Previous Move is added to the board, in the form of my own structure called Action.
+This Previous Move is used for determining how throughly the Chess Board needs to be checked for Check.
+This will be explained in more details later. 
+
+Next, the Board is asked to generate all possible moves, and a random one is picked.
+The Move generation function Actions(). Iterates each piece, and if that piece is allowed to move (correct turn) the Generate Moves Function is called.
+More details later.
+
+The Random action chosen is then parsed, the piece it represents is selected, and then the Move is prepared.
+Before the move occurs, The piece is selected in my data-structure, and Generate Moves is called on it again.
+All these actions are parsed, and pasted in the Console. Then the selected move is performed, and the turn ends.
+
+CB DATA STRUCTURE
+
+First, CB stands for ChessBoard, it contains a board encoding of pieces, along with several useful things, such as whose turn and Castling Privlleges, ect.
+A CB can be contructed from Fen, or another CB with an action. A default board can be constructed as well.
+There are several functions availible that are to handle human inputs, but the important function for the AI is Actions(). This generates all possible moves.
+In addition, it performs several booking matters, First, it performs a check to see if the current player is in Check. 
+This can only occur based on the opponents previous move, so only two areas are of key interest, the from and to position of the last piece moved.
+These are checked along any lines to the king, and if the moveto could be a Knight Check.
+If a player is not in check, it only needs to consider if a move it makes can put it in check, which will be extreemely easy to compute.
+
+After this speed-up computation, Each piece is selected, and has it's GenerateMoves function called. 
+This is a abstract method part of CP (ChessPiece) that all pieces implement, and is an example of polymorphism. 
+Each of these GenerateMove generate all legal moves, checks them for Check (usually using the more advanced techniques as described above, called BetterCheckCheck) 
+and if everything is valid, stores all the information about that move, in an Action Data Structure. 
+In special cases, such as Enpassant, normal checking rules don't apply, so an extensive Checking function is called, that traces outwards
+from the king to determine if check is present (This function is simply CheckCheck)
+
+The CP data-structure has mostly been defined already, but it contains all the information about a piece type, such as color, value, ect.
+
+The Action data structure simply holds any information that is needed to make a move, or in case of needing to undo an action, that is stored as well.
+
+
+************************************
+Assignment 2
+************************************
+
+The additons this week is calling my AI function, along with some setup for possible draws. 
+
+This function calls either MinP (Min Player) or MaxP, and either selects the move with the largest score returned, 
+or the lowest score returned based on whose turn it is to move.
+
+MinP and MaxP do mostly the same thing as each other, they check draw conditions, and return zero if true, they check for checkmate, and return a largest
+value if true, that is weighted based on depth to encourage checkmating ealier. Then, if the depth limit is reached, they evaluate the board, otherwise,
+they call the other function on all moves, and selects the best score for them. 
+
+My program includes Quiscential search already, and will look up to 4 moves deeper if the move is a losing capture (a piece of higher value captures a piece of lower),
+but no pruning is done, as requested. 
+
+My heuristics were in place last time, but not used, but every piece has a variable value except the queen and king. The king is valued at 0, but
+that shouldn't be a problem, the queen is simply valued greatly no matter what. The other pieces change value on position, and who they attack/defend.
+I have plans to change the score of the king based on position to encourage saftey, but for now it isn't required. 
+
+It is possible to run out of time with the current settings, but I believe it perform well enough as it is, even on a slightly slower computer than my own.
+I used half my time to play a game on my own computer. 
+
+
+************************************
+Assignment 3
+************************************
+
+Very minor tweaks this week, The MinP and MaxP have had alpha beta pruning, which is added near the bottom of each function. They simply
+use alpha and beta to replace their previous min/max values, and if alpha>beta, then a score is returned right away.
+
+There is also an addition to each function that checks the current time. If the time has passed a preset value, then searching terminates,
+by returning extreemely bad values for the respective function. This will force the move choice to end early, and the best move found so far to be used.
+Some setup for this can be found at the beginning of the AI function, it sets a cutoff time at 1/10th of the remaining time. This way, as time runs out,
+The search will run faster and faster in order to finish the game. 
+
+I have also increased the depth limit an extra ply, from 4 to 5. Last week 4 was slow, but this week 5 will be fast thanks to alpha beta. In this way
+there is both a depth limit and a time limit. If either one expires, the search ends. This approach keeps the time availible for complex moves, while
+not over commiting.
+
+
+************************************
+Assignment 4
+************************************
+
+The addition this week was to sort the moves before processing them based on a history table. I tried various forms of storing these moves,
+and the best I found was simply storing a move anytime it caused a alpha-beta prune, as well as the best move from the last Iterative Deepening Search.
+Instead of counting the number of times a move was good, I only considered the last search. I also ran into problems when trying to store board states,
+as the memory usage was very high, in part due to Java's inefficent memory wrappers. As such, I reduced to only the particular move, much in the same way
+that move-repeatition is calculated. This does reduce the gain from the history table, but saves a lot in memory usage. 
+
+Overall, not much improvement was given from these additions, partly because I already sort my moves with LVA-MVV move ordering, which causes alpha-beta
+pruning quite often. 
